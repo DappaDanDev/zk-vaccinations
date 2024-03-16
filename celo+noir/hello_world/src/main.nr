@@ -1,11 +1,8 @@
-fn main(x: Field, y: pub Field) {
+use dep::std;
+
+fn main(x: Field, y: pub Field) -> pub Field {
     assert(x != y);
-}
+    let hash = std::hash::pedersen_hash([x, y]);
 
-#[test]
-fn test_main() {
-    main(1, 2);
-
-    // Uncomment to make test fail
-    // main(1, 1);
+    hash
 }
