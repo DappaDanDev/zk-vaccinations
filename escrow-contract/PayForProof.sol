@@ -7,12 +7,14 @@ interface INoirVerifier {
     function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool);
 }
 
-contract PayForPoof {
+contract Escrow {
     address public payer;
     address public payee;
     IERC20 public usdc;
     uint256 public amount;
     bool public released = false;
+    address public trustedContract;
+
 
     constructor(address _payer, address _payee, uint256 _amount) {
         payer = _payer;
@@ -21,13 +23,18 @@ contract PayForPoof {
         amount = _amount;
     }
 
+    function setTrustedContract(address _trustedContract) public {
+        // Add a require statement here if you want to restrict who can call this function
+        trustedContract = _trustedContract;
+    }
+
+
     function deposit() external {
         require(msg.sender == payer, "Only payer can deposit");
         require(usdc.transferFrom(payer, address(this), amount), "Transfer of USDC failed");
     }
-
-    function release() public {
-        require(msg.sender == payer, "Only payer can release the funds");
+    function releaseFromContract() public {
+        require(msg.sender == trustedContract, "Only the trusted contract can release the funds");
         require(!released, "Funds are already released");
         released = true;
         require(usdc.transfer(payee, amount), "Transfer of USDC failed");
@@ -36,12 +43,12 @@ contract PayForPoof {
 
 contract NoirCustomLogic {
     INoirVerifier public noirVerifier;
-    PayForProof public escrow;
+    Escrow public escrow;
     uint public publicInput;
 
     constructor(address noirVeriferAddress, address escrowAddress) {
         noirVerifier = INoirVerifier(noirVeriferAddress);
-        escrow = PayForProof(escrowAddress);
+        escrow = Escrow(escrowAddress);
     }
 
     function sendProof(bytes calldata _proof, bytes32[] calldata _publicInputs) public {
@@ -52,6 +59,6 @@ contract NoirCustomLogic {
         publicInput = uint(_publicInputs[0]);
 
         // Call the release function of the Escrow contract
-        escrow.release();
+        escrow.releaseFromContract();
     }
 }
